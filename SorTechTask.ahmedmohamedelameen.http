@@ -1,0 +1,6 @@
+@SorTechTask.ahmedmohamedelameen_HostAddress = http://localhost:5072
+
+GET {{SorTechTask.ahmedmohamedelameen_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
