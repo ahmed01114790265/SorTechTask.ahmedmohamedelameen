@@ -38,7 +38,7 @@ and automatically manage temporal blocks using background services.
 
  ## UML
  ```mermaid
- [ sequenceDiagram
+sequenceDiagram
     participant Client
     participant IpController
     participant GeolocationService
@@ -46,16 +46,15 @@ and automatically manage temporal blocks using background services.
     participant MemoryStorage
 
     Client->>IpController: GET /api/ip/check-block
-    Note right of IpController: Retrieve Caller IP from HttpContext
+    Note right of IpController: Get Caller IP (HttpContext)
     IpController->>GeolocationService: GetCountryCodeAsync(ip)
     GeolocationService->>ExternalAPI: HTTP GET (with ApiKey)
-    ExternalAPI-->>GeolocationService: Return Country Data (e.g., EG)
-    GeolocationService-->>IpController: Return CountryCode
-    IpController->>MemoryStorage: Check if Code exists in BlockedList
-    MemoryStorage-->>IpController: IsBlocked (True/False)
-    Note right of IpController: Log attempt (IP, Time, Status)
-    IpController-->>Client: 200 OK or 403 Forbidden    ]
- 
+    ExternalAPI-->>GeolocationService: Return JSON Data
+    GeolocationService-->>IpController: Return CountryCode (e.g., EG)
+    IpController->>MemoryStorage: Check against BlockedList
+    MemoryStorage-->>IpController: IsBlocked Status
+    Note right of IpController: Log attempt details
+    IpController-->>Client: 200 OK or 403 Forbidden
 
 ## Developed by: Ahmed Mohamed Alameen.
 
