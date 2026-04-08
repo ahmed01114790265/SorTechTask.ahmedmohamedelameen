@@ -34,7 +34,28 @@ and automatically manage temporal blocks using background services.
 -GET /api/iplookup/{ipAddress}: Fetch geolocation data for a specific IP address.
 -GET /api/logs: Retrieve access logs with support for pagination and search.
 -POST /api/countries/temporal-block - Block a country for a specific duration (1-1440 minutes).
+ 
 
+ ## UML
+ ```mermaid
+ [ sequenceDiagram
+    participant Client
+    participant IpController
+    participant GeolocationService
+    participant ExternalAPI as ipgeolocation.io
+    participant MemoryStorage
+
+    Client->>IpController: GET /api/ip/check-block
+    Note right of IpController: Retrieve Caller IP from HttpContext
+    IpController->>GeolocationService: GetCountryCodeAsync(ip)
+    GeolocationService->>ExternalAPI: HTTP GET (with ApiKey)
+    ExternalAPI-->>GeolocationService: Return Country Data (e.g., EG)
+    GeolocationService-->>IpController: Return CountryCode
+    IpController->>MemoryStorage: Check if Code exists in BlockedList
+    MemoryStorage-->>IpController: IsBlocked (True/False)
+    Note right of IpController: Log attempt (IP, Time, Status)
+    IpController-->>Client: 200 OK or 403 Forbidden    ]
+ 
 
 ## Developed by: Ahmed Mohamed Alameen.
 
