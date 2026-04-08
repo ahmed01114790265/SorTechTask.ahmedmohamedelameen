@@ -1,3 +1,4 @@
+using SorTechTask.ahmedmohamedelameen.BackgroundServices;
 using SorTechTask.ahmedmohamedelameen.GeolocationService;
 using SorTechTask.ahmedmohamedelameen.Repositories;
 
@@ -14,6 +15,7 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddHttpClient<IGeolocationService, GeolocationService>(client => {
     client.BaseAddress = new Uri(builder.Configuration["GeolocationSettings:BaseUrl"]);
 });
+builder.Services.AddHostedService<BlockedCountryCleanupService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

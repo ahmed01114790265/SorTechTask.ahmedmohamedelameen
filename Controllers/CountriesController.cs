@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using SorTechTask.ahmedmohamedelameen.DTO;
 using SorTechTask.ahmedmohamedelameen.Models;
 using SorTechTask.ahmedmohamedelameen.Repositories;
 
@@ -11,27 +12,26 @@ namespace SorTechTask.ahmedmohamedelameen.Controllers
     {
         readonly MemoryStorage _storage;
 
-        public CountriesController(MemoryStorage storage)
-        {
-            _storage = storage;
-        }
+        public CountriesController(MemoryStorage storage) => _storage = storage;
+        
 
 
-        [HttpPost("addblock")]
-        public IActionResult AddBlockedCountry([FromBody] BlockedCountry request)
+        [HttpPost("block")]
+        public IActionResult BlockedCountry([FromBody] BlockedCountryRequestDTO request)
         {
-            if (string.IsNullOrWhiteSpace(request.CountryCode))
-                return BadRequest("Country code is required.");
+            if (string.IsNullOrWhiteSpace(request.CountryCode) || request.CountryCode.Length != 2)
+                return BadRequest("Invalid country code format. It must be a 2-letter ISO code.");
 
             var code = request.CountryCode.ToUpper().Trim();
+            if (!code.All(char.IsLetter))
+                return BadRequest("Country code must contain letters only.");
             if (_storage.BlockedCountries.ContainsKey(code))
             { 
                 return Conflict(new { Message = $"Country with code '{code}' is already blocked." });
             }
             var newBlock = new BlockedCountry
             {
-                CountryCode = request.CountryCode,
-                CountryName = request.CountryName ?? "Unknown", 
+                CountryCode = request.CountryCode, 
                 BlockedAt = DateTime.UtcNow
             };
 
@@ -56,14 +56,15 @@ namespace SorTechTask.ahmedmohamedelameen.Controllers
             return NotFound(new { Message = "Country is not in the blocked list." });
         }
 
-        [HttpGet("getallblocked")]
+        [HttpGet("blocked")]
         public IActionResult GetBlockedCountries([FromQuery] int page = 1, [FromQuery] int pageSize = 5, [FromQuery] string search = null)
         {
             var data = _storage.BlockedCountries.Values.AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
             {
-                data = data.Where(c => c.CountryCode.Contains(search, StringComparison.OrdinalIgnoreCase));
+                data = data.Where(c => c.CountryCode.Contains(search, StringComparison.OrdinalIgnoreCase)
+                      || c.CountryName.Contains(search, StringComparison.OrdinalIgnoreCase));
             }
 
           
@@ -80,5 +81,33 @@ namespace SorTechTask.ahmedmohamedelameen.Controllers
                 Data = result
             });
         }
+
+        [HttpPost("temporal-block")]
+        public IActionResult TemporalBlock([FromBody] TemporalBlockRequestDTO request)
+        {
+            if(string.IsNullOrWhiteSpace(request.CountryCode) || request.CountryCode.Length != 2)
+                return BadRequest("Invalid country code format. It must be a 2-letter ISO code.");
+            if (request.DurationMinutes < 1 || request.DurationMinutes > 1440)
+                return BadRequest("Duration must be between 1 and 1440 minutes.");
+
+            var code = request.CountryCode.ToUpper();
+            if (!code.All(char.IsLetter))
+                return BadRequest("Country code must contain letters only.");
+
+            if (_storage.BlockedCountries.ContainsKey(code))
+                return Conflict("Country is already blocked.");
+
+            var newBlock = new BlockedCountry
+            {
+                CountryCode = code,
+                BlockedAt = DateTime.UtcNow,
+                ExpirationTime = DateTime.UtcNow.AddMinutes(request.DurationMinutes)
+            };
+
+            _storage.BlockedCountries.TryAdd(code, newBlock);
+            return Ok(newBlock);
+        }
+
+       
     }
 }
